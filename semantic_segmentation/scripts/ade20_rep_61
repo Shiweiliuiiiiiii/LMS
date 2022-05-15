@@ -1,0 +1,27 @@
+#!/bin/bash
+#SBATCH --job-name=ADE20_rep61
+#SBATCH -p gpu
+#SBATCH -N 1
+#SBATCH --ntasks-per-node=1
+#SBATCH --gpus-per-node=4
+#SBATCH --gpus=4
+#SBATCH -t 4-23:59:59
+#SBATCH --exclusive
+#SBATCH --cpus-per-task=72
+#SBATCH -o ADE20_rep61.out
+
+source /home/sliu/miniconda3/etc/profile.d/conda.sh
+source activate LoRA
+
+export LARGE_KERNEL_CONV_IMPL='/home/sliu/Projects/cutlass/examples/19_large_depthwise_conv2d_torch_extension'
+#module purge
+#module load 2021
+#module load CUDA/11.3.1
+#module load PyTorch/1.10.0-foss-2021a-CUDA-11.3.1
+
+bash tools/dist_train.sh  \
+ /home/sliu/Projects/unilm/beit/semantic_segmentation/configs/convnext/upernet_convnext_tiny_512_80k_ade20k_ss_rep_61.py  4  \
+  --work-dir Results/ADE20_rep61/ --seed 0 --deterministic --options model.pretrained=/home/sliu/Projects/LoRA_LK/Results/Kernel_size/61595713/5/LoRA_120_fix_EMA_Rep/120epochs/checkpoint-best.pth
+
+
+source deactivate

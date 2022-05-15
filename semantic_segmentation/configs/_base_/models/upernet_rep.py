@@ -19,8 +19,6 @@ model = dict(
         layer_scale_init_value=1.0,
         out_indices=[0, 1, 2, 3],
         kernel_size=[51, 49, 47, 13, 5],
-        LoRA=True,
-        width_factor=1.5
     ),
     decode_head=dict(
         type='UPerHead',

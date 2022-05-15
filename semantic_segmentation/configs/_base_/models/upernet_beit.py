@@ -1,30 +1,33 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-
-# All rights reserved.
-
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-
-
+# --------------------------------------------------------
+# BEIT: BERT Pre-Training of Image Transformers (https://arxiv.org/abs/2106.08254)
+# Github source: https://github.com/microsoft/unilm/tree/master/beit
+# Copyright (c) 2021 Microsoft
+# Licensed under The MIT License [see LICENSE for details]
+# By Hangbo Bao
+# Based on timm, mmseg, setr, xcit and swin code bases
+# https://github.com/rwightman/pytorch-image-models/tree/master/timm
+# https://github.com/fudan-zvg/SETR
+# https://github.com/facebookresearch/xcit/
+# https://github.com/microsoft/Swin-Transformer
+# --------------------------------------------------------'
 norm_cfg = dict(type='SyncBN', requires_grad=True)
 model = dict(
     type='EncoderDecoder',
     pretrained=None,
     backbone=dict(
-        type='ConvNeXt_Rep',
-        in_chans=3,
-        depths=[3, 3, 9, 3], 
-        dims=[96, 192, 384, 768], 
-        drop_path_rate=0.2,
-        layer_scale_init_value=1.0,
-        out_indices=[0, 1, 2, 3],
-        kernel_size=[51, 49, 47, 13, 5],
-        LoRA=True,
-        width_factor=1.5
+        type='XCiT',
+        patch_size=16,
+        embed_dim=384,
+        depth=12,
+        num_heads=8,
+        mlp_ratio=4,
+        qkv_bias=True,
+        use_abs_pos_emb=True,
+        use_rel_pos_bias=False,
     ),
     decode_head=dict(
         type='UPerHead',
-        in_channels=[128, 256, 512, 1024],
+        in_channels=[384, 384, 384, 384],
         in_index=[0, 1, 2, 3],
         pool_scales=(1, 2, 3, 6),
         channels=512,
