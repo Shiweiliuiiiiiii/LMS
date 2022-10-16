@@ -19,18 +19,20 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     device: torch.device, epoch: int, loss_scaler, max_norm: float = 0,
                     model_ema: Optional[ModelEma] = None, mixup_fn: Optional[Mixup] = None, log_writer=None,
                     wandb_logger=None, start_steps=None, lr_schedule_values=None, wd_schedule_values=None,
-                    num_training_steps_per_epoch=None, update_freq=None, use_amp=False):
+                    num_training_steps_per_epoch=None, update_freq=None, use_amp=False, mask=None):
     model.train(True)
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     metric_logger.add_meter('min_lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     header = 'Epoch: [{}]'.format(epoch)
-    print_freq = 10
+    print_freq = 200
 
     optimizer.zero_grad()
 
     for data_iter_step, (samples, targets) in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
         step = data_iter_step // update_freq
+
+
         if step >= num_training_steps_per_epoch:
             continue
         it = start_steps + step  # global training iteration
@@ -72,15 +74,19 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             if (data_iter_step + 1) % update_freq == 0:
                 optimizer.zero_grad()
                 if model_ema is not None:
-                    model_ema.update(model)
+                    model_ema.update(model, mask)
+
         else: # full precision
             loss /= update_freq
             loss.backward()
             if (data_iter_step + 1) % update_freq == 0:
-                optimizer.step()
+                if mask:
+                    mask.step(epoch)
+                else:
+                    optimizer.step()
                 optimizer.zero_grad()
                 if model_ema is not None:
-                    model_ema.update(model)
+                    model_ema.update(model, mask)
 
         torch.cuda.synchronize()
 
