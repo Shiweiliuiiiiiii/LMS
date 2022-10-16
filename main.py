@@ -21,16 +21,25 @@ from pathlib import Path
 from timm.data.mixup import Mixup
 from timm.models import create_model
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
-from timm.utils import ModelEma
+# from timm.utils import ModelEma
+from model_sema import ModelEma
 from optim_factory import create_optimizer, LayerDecayValueAssigner
-
 from datasets import build_dataset
 from engine import train_one_epoch, evaluate
-
 from utils import NativeScalerWithGradNormCount as NativeScaler
+import sparse_core
+from sparse_core import Masking, CosineDecay
+
 import utils
-import models.convnext
-import models.convnext_isotropic
+import models.convnext_dual_Rep
+import models.convnext_dual_Rep_bottleneck
+import models.slak_multi_scales
+
+
+def kernel_type(strings):
+    strings = strings.replace("(", "").replace(")", "")
+    mapped_int = map(int, strings.split(","))
+    return [tuple(mapped_int[:-1]), mapped_int[-1]]
 
 def str2bool(v):
     """
@@ -151,7 +160,9 @@ def get_args_parser():
     parser.add_argument('--nb_classes', default=1000, type=int,
                         help='number of the classification types')
     parser.add_argument('--imagenet_default_mean_and_std', type=str2bool, default=True)
-    parser.add_argument('--data_set', default='IMNET', choices=['CIFAR', 'IMNET', 'image_folder'],
+    # parser.add_argument('--data_set', default='IMNET', choices=['CIFAR', 'IMNET', 'image_folder'],
+    #                     type=str, help='ImageNet dataset path')
+    parser.add_argument('--data_set', default='IMNET', choices=['CIFAR', 'IMNET', 'IMNET-LIST', 'image_folder'],
                         type=str, help='ImageNet dataset path')
     parser.add_argument('--output_dir', default='',
                         help='path where to save, empty for no saving')
@@ -165,7 +176,7 @@ def get_args_parser():
                         help='resume from checkpoint')
     parser.add_argument('--auto_resume', type=str2bool, default=True)
     parser.add_argument('--save_ckpt', type=str2bool, default=True)
-    parser.add_argument('--save_ckpt_freq', default=1, type=int)
+    parser.add_argument('--save_ckpt_freq', default=10, type=int)
     parser.add_argument('--save_ckpt_num', default=3, type=int)
 
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
@@ -199,7 +210,17 @@ def get_args_parser():
     parser.add_argument('--wandb_ckpt', type=str2bool, default=False,
                         help="Save model checkpoints as W&B Artifacts.")
 
+    # large kernel
+    parser.add_argument('--kernel-size', nargs="*", type=int,
+                        default = [31,29,27,13,3], help='kernel size of attention (default: [31,29,27,13,3])')
+    parser.add_argument('--width-factor', type=float, default=1, help='set the width factor of the model')
+    parser.add_argument('--LoRA', type=str2bool, default=False, help='Enabling low rank path')
+    parser.add_argument('--bn', type=str2bool, default=True, help='add bn layer after each path')
+    parser.add_argument('--endepoch', type=int, default=300, help='end of sparse structure update (default: 300)')
+    sparse_core.add_sparse_args(parser)
+
     return parser
+
 
 def main(args):
     utils.init_distributed_mode(args)
@@ -268,6 +289,7 @@ def main(args):
 
     mixup_fn = None
     mixup_active = args.mixup > 0 or args.cutmix > 0. or args.cutmix_minmax is not None
+
     if mixup_active:
         print("Mixup is activated!")
         mixup_fn = Mixup(
@@ -275,13 +297,18 @@ def main(args):
             prob=args.mixup_prob, switch_prob=args.mixup_switch_prob, mode=args.mixup_mode,
             label_smoothing=args.smoothing, num_classes=args.nb_classes)
 
+
     model = create_model(
-        args.model, 
-        pretrained=False, 
-        num_classes=args.nb_classes, 
+        args.model,
+        pretrained=False,
+        num_classes=args.nb_classes,
         drop_path_rate=args.drop_path,
         layer_scale_init_value=args.layer_scale_init_value,
         head_init_scale=args.head_init_scale,
+        kernel_size=args.kernel_size,
+        width_factor=args.width_factor,
+        LoRA=args.LoRA,
+        bn=args.bn,
         )
 
     if args.finetune:
@@ -326,15 +353,16 @@ def main(args):
 
     total_batch_size = args.batch_size * args.update_freq * utils.get_world_size()
     num_training_steps_per_epoch = len(dataset_train) // total_batch_size
+
     print("LR = %.8f" % args.lr)
     print("Batch size = %d" % total_batch_size)
     print("Update frequent = %d" % args.update_freq)
     print("Number of training examples = %d" % len(dataset_train))
-    print("Number of training training per epoch = %d" % num_training_steps_per_epoch)
+    print("Number of training steps per epoch = %d" % num_training_steps_per_epoch)
 
     if args.layer_decay < 1.0 or args.layer_decay > 1.0:
         num_layers = 12 # convnext layers divided into 12 parts, each with a different decayed lr value.
-        assert args.model in ['convnext_small', 'convnext_base', 'convnext_large', 'convnext_xlarge'], \
+        assert args.model in ['convnext_small', 'convnext_base', 'convnext_large', 'convnext_xlarge', 'convnext_tiny_Rep', 'convnext_small_Rep', 'convnext_base_Rep', 'convnext_large_Rep'], \
              "Layer Decay impl only supports convnext_small/base/large/xlarge"
         assigner = LayerDecayValueAssigner(list(args.layer_decay ** (num_layers + 1 - i) for i in range(num_layers + 2)))
     else:
@@ -382,13 +410,30 @@ def main(args):
 
     if args.eval:
         print(f"Eval only mode")
+        print(f"Start to update batch norm statistics")
+        torch.optim.swa_utils.update_bn(data_loader_train, model, 'cuda')
         test_stats = evaluate(data_loader_val, model, device, use_amp=args.use_amp)
         print(f"Accuracy of the network on {len(dataset_val)} test images: {test_stats['acc1']:.5f}%")
+        utils.save_model(
+            args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
+            loss_scaler=loss_scaler, epoch="best-ema", model_ema=model_ema)
         return
+
+    # num_training_steps_per_epoch is the number of the actual training steps
+    mask=None
+    if args.sparse:
+        decay = CosineDecay(args.prune_rate, int(num_training_steps_per_epoch*args.epochs), init_step= int(num_training_steps_per_epoch)*(args.start_epoch))
+        mask = Masking(optimizer, train_loader=data_loader_train, prune_mode=args.prune, prune_rate_decay=decay, growth_mode=args.growth, redistribution_mode=args.redistribution, args=args)
+        mask.add_module(model)
 
     max_accuracy = 0.0
     if args.model_ema and args.model_ema_eval:
         max_accuracy_ema = 0.0
+
+    para_count = 0
+    for name, para in model.named_parameters():
+        para_count += (para!=0).sum().item()
+    print(f"Total number of parameters are {para_count}")
 
     print("Start training for %d epochs" % args.epochs)
     start_time = time.time()
@@ -405,7 +450,7 @@ def main(args):
             log_writer=log_writer, wandb_logger=wandb_logger, start_steps=epoch * num_training_steps_per_epoch,
             lr_schedule_values=lr_schedule_values, wd_schedule_values=wd_schedule_values,
             num_training_steps_per_epoch=num_training_steps_per_epoch, update_freq=args.update_freq,
-            use_amp=args.use_amp
+            use_amp=args.use_amp, mask=mask
         )
         if args.output_dir and args.save_ckpt:
             if (epoch + 1) % args.save_ckpt_freq == 0 or epoch + 1 == args.epochs:
@@ -470,6 +515,7 @@ def main(args):
     print('Training time {}'.format(total_time_str))
 
 if __name__ == '__main__':
+
     parser = argparse.ArgumentParser('ConvNeXt training and evaluation script', parents=[get_args_parser()])
     args = parser.parse_args()
     if args.output_dir:

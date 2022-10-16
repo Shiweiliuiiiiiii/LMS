@@ -1,0 +1,15 @@
+#!/bin/bash
+eval "$(conda shell.bash hook)"
+conda activate py37torch182cu102
+source /home/JJteam/.load_cu102
+
+export LARGE_KERNEL_CONV_IMPL='/datadrive_c/JJteam/cutlass/examples/19_large_depthwise_conv2d_torch_extension'
+
+
+python -m torch.distributed.launch --nproc_per_node=4 main.py  \
+--sparse --width-factor 1.3 --prune-rate 0.2 -u 4000 --init-density 0.6 --method DST --sparse-init snip \
+--LoRA True --epochs 300 --model $model --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path $IMAGENET_PATH --num_workers 72 --kernel-size 51 49 47 13 5 \
+--output_dir Results/$model/51494713/w1.3_s0.6_snip/300epochs_pr0.2/
+
+source deactivate
