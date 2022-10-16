@@ -17,8 +17,8 @@ source activate slak
 model=SLAK_MS_tiny
 python -m torch.distributed.launch --nproc_per_node=4 main.py  \
 --LoRA True --epochs 120 --model SLAK_MS_tiny --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
---model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18 --kernel-size 51 49 47 13 5 \
---output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/SLAK_MS_tiny/bn_every_layer/ --bn True
+--model_ema_eval true --data_path /datadrive_c/imagenet/ --num_workers 10 --kernel-size 51 49 47 13 5 \
+--output_dir /datadrive_c/slak_ms/bn_each_pah/ --bn True
 
 
 source deactivate
