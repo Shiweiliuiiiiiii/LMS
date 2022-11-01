@@ -190,7 +190,7 @@ def get_args_parser():
     parser.add_argument('--num_workers', default=10, type=int)
     parser.add_argument('--pin_mem', type=str2bool, default=True,
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
-
+    parser.add_argument('--throughput', action='store_true', help='Test throughput only')
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
                         help='number of distributed processes')
@@ -419,6 +419,9 @@ def main(args):
             loss_scaler=loss_scaler, epoch="best-ema", model_ema=model_ema)
         return
 
+    if args.throughput:
+        throughput(data_loader_val, model)
+        return
     # num_training_steps_per_epoch is the number of the actual training steps
     mask=None
     if args.sparse:
@@ -513,6 +516,25 @@ def main(args):
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
+
+@torch.no_grad()
+def throughput(data_loader, model):
+    model.eval()
+
+    for idx, (images, _) in enumerate(data_loader):
+        images = images.cuda(non_blocking=True)
+        batch_size = images.shape[0]
+        for i in range(50):
+            model(images)
+        torch.cuda.synchronize()
+        print(f"throughput averaged with 30 times")
+        tic1 = time.time()
+        for i in range(30):
+            model(images)
+        torch.cuda.synchronize()
+        tic2 = time.time()
+        print(f"batch_size {batch_size} throughput {30 * batch_size / (tic2 - tic1)}")
+        return
 
 if __name__ == '__main__':
 
