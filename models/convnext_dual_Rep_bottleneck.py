@@ -17,6 +17,9 @@ from depthwise_conv2d_implicit_gemm import DepthWiseConv2dImplicitGEMM
 
 use_sync_bn = True
 
+def nn_conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias):
+    return nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias)
+
 def get_conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias):
     return DepthWiseConv2dImplicitGEMM(in_channels, kernel_size, bias=bias)
 
@@ -69,17 +72,67 @@ class Bottleneck_attention(nn.Module):
         padding = kernel_size // 2
 
 
-        self.LoRA1 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(small_kernel, kernel_size),
-                              stride=stride, padding=padding, dilation=1, groups=groups, bn=bn)
-        self.LoRA2 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(kernel_size, small_kernel),
-                             stride=stride, padding=padding, dilation=1, groups=groups, bn=bn)
+        self.LoRA1 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
+                              stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
 
+        self.LoRA2 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
+                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
+
+        self.LoRA3 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
+                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
+
+        self.LoRA4 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
+                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
+
+        self.LoRA5 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
+                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
+
+        self.LoRA6 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
+                              stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
+
+        self.LoRA7 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
+                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
+
+        self.LoRA8 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
+                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
+
+        self.LoRA9 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
+                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
+
+        self.LoRA10 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
+                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
+
+        self.small_conv = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=5,
+                                  stride=stride, padding=5 //2, groups=groups, dilation=1, bn=bn)
 
     def forward(self, inputs):
-        out = self.LoRA2(self.LoRA1(inputs))
+        out = self.LoRA10(self.LoRA9(self.LoRA8(self.LoRA7(self.LoRA6(self.LoRA5(self.LoRA4(self.LoRA3(self.LoRA2(self.LoRA1(inputs)))))))))) + self.small_conv(inputs)
         return out
 
+class Dilation_mudule(nn.Module):
 
+    def __init__(self, in_channels, out_channels, kernel_size,
+                 stride, groups,
+                 small_kernel,
+                 small_kernel_merged=False, LoRA=False, bn=True):
+        super(Dilation_mudule, self).__init__()
+        self.kernel_size = kernel_size
+        self.small_kernel = small_kernel
+        self.LoRA = LoRA
+        # We assume the conv does not change the feature map size, so padding = k//2. Otherwise, you may configure padding as you wish, and change the padding of small_conv accordingly.
+        padding = kernel_size // 2
+
+
+        self.Dilation = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(kernel_size, kernel_size),
+                              stride=stride, padding=((kernel_size-1) * 3) // 2, dilation=3, groups=groups, bn=bn)
+
+
+        self.small_conv = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=small_kernel,
+                                  stride=stride, padding=small_kernel // 2, dilation=1, groups=groups, bn=bn)
+
+    def forward(self, inputs):
+        out = self.Dilation(inputs) + self.small_conv(inputs)
+        return out
 
 class Block(nn.Module):
     r""" ConvNeXt Block. There are two equivalent implementations:
