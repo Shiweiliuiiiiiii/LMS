@@ -1,13 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=SLaK_small
+#SBATCH --job-name=SLaK_tiny_SNIP_1.3_0.6
 #SBATCH -p gpu
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
-#SBATCH --gpus-per-node=1
-#SBATCH --gpus=1
-#SBATCH -t 00:00:59
-#SBATCH --cpus-per-task=18
-#SBATCH -o SLaK_small.out
+#SBATCH --gpus-per-node=4
+#SBATCH --gpus=4
+#SBATCH -t 4-23:59:59
+#SBATCH --exclusive
+#SBATCH --cpus-per-task=72
+#SBATCH -o SLaK_tiny_SNIP_1.3_0.6.out
 
 source /home/sliu/miniconda3/etc/profile.d/conda.sh
 source activate LoRA
@@ -17,12 +18,12 @@ source activate LoRA
 #module load CUDA/11.3.1
 #module load PyTorch/1.10.0-foss-2021a-CUDA-11.3.1
 
-
-python run_with_submitit.py --nodes 2 --ngpus 4 --model convnext_small_Rep --drop_path 0.4 --timeout 119 \
---LoRA True --width-factor 1.3 --sparse --sparse-init ERK_plus --init-density 0.5 \
---batch_size 128 --lr 4e-3 --update_freq 4 --model_ema true --model_ema_eval true \
---data_path /projects/2/managed_datasets/imagenet/ --num_workers 72 --kernel-size 51 49 47 13 3 \
---job_dir /projects/0/prjste21060/projects/SLaK/checkpoint/small/
+model=convnext_tiny_Rep
+python -m torch.distributed.launch --nproc_per_node=4 main.py  \
+--sparse --width-factor 1.3 -u 4000 --init-density 0.6 --method DST --sparse-init snip \
+--LoRA True --epochs 300 --model $model --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 72 --kernel-size 51 49 47 13 5 \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/$model/51494713/W_S_ana/w1.3_s0.6_snip/300epochs/
 
 
 source deactivate

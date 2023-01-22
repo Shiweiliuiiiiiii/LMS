@@ -72,41 +72,17 @@ class Bottleneck_attention(nn.Module):
         padding = kernel_size // 2
 
 
-        self.LoRA1 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
-                              stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
+        self.LoRA1 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(small_kernel, kernel_size),
+                              stride=stride, padding=padding, dilation=1, groups=groups, bn=bn)
 
-        self.LoRA2 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
-                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
+        self.LoRA2 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(kernel_size, small_kernel),
+                             stride=stride, padding=padding, dilation=1, groups=groups, bn=bn)
 
-        self.LoRA3 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
-                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
-
-        self.LoRA4 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
-                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
-
-        self.LoRA5 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
-                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
-
-        self.LoRA6 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
-                              stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
-
-        self.LoRA7 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
-                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
-
-        self.LoRA8 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
-                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
-
-        self.LoRA9 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
-                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
-
-        self.LoRA10 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(5, 5),
-                             stride=stride, padding=5 //2, dilation=1, groups=groups, bn=bn)
-
-        self.small_conv = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=5,
-                                  stride=stride, padding=5 //2, groups=groups, dilation=1, bn=bn)
+        self.small_conv = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=small_kernel,
+                                  stride=stride, padding=small_kernel // 2, groups=groups, dilation=1, bn=bn)
 
     def forward(self, inputs):
-        out = self.LoRA10(self.LoRA9(self.LoRA8(self.LoRA7(self.LoRA6(self.LoRA5(self.LoRA4(self.LoRA3(self.LoRA2(self.LoRA1(inputs)))))))))) + self.small_conv(inputs)
+        out = self.LoRA2(self.LoRA1(inputs)) + self.small_conv(inputs)
         return out
 
 class Dilation_mudule(nn.Module):

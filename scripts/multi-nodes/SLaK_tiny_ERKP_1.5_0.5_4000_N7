@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=SLaK_tiny_ERKP_1.5_0.5_4000
+#SBATCH --job-name=SLaK_tiny_ERKP_1.5_0.5_4000_N7
 #SBATCH -p gpu
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
@@ -8,7 +8,7 @@
 #SBATCH -t 4-23:59:59
 #SBATCH --exclusive
 #SBATCH --cpus-per-task=72
-#SBATCH -o SLaK_tiny_ERKP_1.5_0.5_4000.out
+#SBATCH -o SLaK_tiny_ERKP_1.5_0.5_4000_N7.out
 
 source /home/sliu/miniconda3/etc/profile.d/conda.sh
 source activate LoRA
@@ -23,8 +23,8 @@ model=convnext_tiny_Rep
 python -m torch.distributed.launch --nproc_per_node=4 main.py  \
 --sparse --width-factor 1.5 -u 4000 --init-density 0.5 --method DST --sparse-init ERK_plus \
 --LoRA True --epochs 300 --model $model --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
---model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 72 --kernel-size 51 49 47 13 5 \
---output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/$model/51494713/W_S_ana/w1.5_s0.5_ERKP_4000/300epochs/
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 72 --kernel-size 51 49 47 13 7 \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/$model/51494713/W_S_ana/w1.5_s0.5_ERKP_4000_N7/300epochs/
 
 
 source deactivate

@@ -1,25 +1,26 @@
 #!/bin/bash
-#SBATCH --job-name=SLaK_tiny_3x3_stacked
+#SBATCH --job-name=SLaK_tiny_10_5x5_stacked
 #SBATCH -p gpu
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=4
 #SBATCH --gpus-per-node=4
 #SBATCH --gpus=4
-#SBATCH -t 1-23:59:59
+#SBATCH -t 2-23:59:59
 #SBATCH --exclusive
 #SBATCH --cpus-per-task=18
-#SBATCH -o SLaK_tiny_3x3_stacked.out
+#SBATCH -o SLaK_tiny_10_5x5_stacked.out
 
 source /home/sliu/miniconda3/etc/profile.d/conda.sh
 source activate slak
 
 
+python -m torch.distributed.launch --nproc_per_node=1 main.py  --throughput \
+--kernel-size 7 7 7 7 100 --bn False --LoRA False --input_size 224  \
+--epochs 100 --model SLAK_Attention_tiny --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/SLAK_Attention_tiny/10_5x5/ --bn False
 
 
-python -m torch.distributed.launch --nproc_per_node=4 main.py  \
---LoRA True --epochs 120 --model convnext_tiny_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
---model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18 --kernel-size 3 3 3 3 5 \
---output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/SLAK_Attention_tiny/3x3stacked/ --bn True
 
 
 source deactivate

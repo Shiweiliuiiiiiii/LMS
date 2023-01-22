@@ -15,6 +15,9 @@ from timm.models.registry import register_model
 
 use_sync_bn = False
 
+def nn_conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias):
+    return nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias)
+
 def get_conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias):
     return nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias)
     # return DepthWiseConv2dImplicitGEMM(in_channels, kernel_size, bias=bias)
@@ -71,17 +74,17 @@ class ReparamLargeKernelConv(nn.Module):
                                           stride=stride, padding=padding, dilation=1, groups=groups, bias=True)
         else:
             if self.LoRA:
-                self.LoRA1 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(kernel_size, small_kernel),
-                                      stride=(stride, stride), padding=((kernel_size-1)//2, (small_kernel-1)//2), dilation=1, groups=groups)
-                self.LoRA2 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=(small_kernel, kernel_size),
-                                     stride=(stride, stride), padding=((small_kernel-1)//2, (kernel_size-1)//2), dilation=1, groups=groups)
+                self.LoRA1 = nn_conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(kernel_size, small_kernel),
+                                      stride=(stride, stride), padding=((kernel_size-1)//2, (small_kernel-1)//2), dilation=1, groups=groups, bias=True)
+                self.LoRA2 = nn_conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(small_kernel, kernel_size),
+                                     stride=(stride, stride), padding=((small_kernel-1)//2, (kernel_size-1)//2), dilation=1, groups=groups, bias=True)
             else:
-                self.lkb_origin = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-                                      stride=stride, padding=padding, dilation=1, groups=groups)
+                self.lkb_origin = nn_conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
+                                      stride=stride, padding=padding, dilation=1, groups=groups, bias=True)
             if (small_kernel is not None) and small_kernel < kernel_size:
                 # assert small_kernel <= kernel_size, 'The kernel size for re-param cannot be larger than the large kernel!'
-                self.small_conv = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=small_kernel,
-                                          stride=stride, padding=small_kernel // 2, groups=groups, dilation=1)
+                self.small_conv = nn_conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=small_kernel,
+                                          stride=stride, padding=small_kernel // 2, groups=groups, dilation=1, bias=True)
 
     def forward(self, inputs):
         if hasattr(self, 'lkb_reparam'):

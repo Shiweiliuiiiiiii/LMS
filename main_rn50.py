@@ -300,16 +300,7 @@ def main(args):
 
 
     model = create_model(
-        args.model,
-        pretrained=False,
-        num_classes=args.nb_classes,
-        drop_path_rate=args.drop_path,
-        layer_scale_init_value=args.layer_scale_init_value,
-        head_init_scale=args.head_init_scale,
-        kernel_size=args.kernel_size,
-        width_factor=args.width_factor,
-        LoRA=args.LoRA,
-        # bn=args.bn,
+        'resnet50', pretrained=False
         )
 
     if args.finetune:

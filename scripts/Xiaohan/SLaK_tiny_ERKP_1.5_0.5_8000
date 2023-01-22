@@ -1,30 +1,17 @@
 #!/bin/bash
-#SBATCH --job-name=SLaK_tiny_ERKP_1.5_0.5_8000
-#SBATCH -p gpu
-#SBATCH -N 1
-#SBATCH --ntasks-per-node=1
-#SBATCH --gpus-per-node=4
-#SBATCH --gpus=4
-#SBATCH -t 4-23:59:59
-#SBATCH --exclusive
-#SBATCH --cpus-per-task=72
-#SBATCH -o SLaK_tiny_ERKP_1.5_0.5_8000.out
+eval "$(conda shell.bash hook)"
+conda activate py37torch182cu102
+source /home/JJteam/.load_cu102
 
-source /home/sliu/miniconda3/etc/profile.d/conda.sh
-source activate LoRA
-
-#module purge
-#module load 2021
-#module load CUDA/11.3.1
-#module load PyTorch/1.10.0-foss-2021a-CUDA-11.3.1
+export LARGE_KERNEL_CONV_IMPL='/datadrive_c/JJteam/cutlass/examples/19_large_depthwise_conv2d_torch_extension'
 
 
 model=convnext_tiny_Rep
 python -m torch.distributed.launch --nproc_per_node=4 main.py  \
 --sparse --width-factor 1.5 -u 8000 --init-density 0.5 --method DST --sparse-init ERK_plus \
 --LoRA True --epochs 300 --model $model --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
---model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 72 --kernel-size 51 49 47 13 5 \
---output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/$model/51494713/W_S_ana/w1.5_s0.5_ERKP_8000/300epochs/
+--model_ema_eval true --data_path $IMAGENET_PATH --num_workers 72 --kernel-size 51 49 47 13 5 \
+--output_dir /Results/$model/51494713/W_S_ana/w1.5_s0.5_ERKP_8000/300epochs/
 
 
 source deactivate

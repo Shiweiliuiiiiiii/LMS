@@ -20,11 +20,12 @@ source activate LoRA
 
 
 model=convnext_tiny_Rep
-python -m torch.distributed.launch --nproc_per_node=4 main.py  \
+python -m torch.distributed.launch --nproc_per_node=1 main.py  \
 --width-factor 1.0 -u 2000 --init-density 0.6 --method DST --sparse-init snip  --prune-rate 0.5 \
---epochs 120 --model $model --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
---model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 72 --kernel-size 3 3 3 3 100 \
---output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/$model/3333/120epochs/
+--kernel-size 3 3 3 3 100 \
+--epochs 120 --model convnext_tiny_Rep --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 72  \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/convnext_tiny_Rep/3333/120epochs/
 
 
 source deactivate

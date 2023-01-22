@@ -29,11 +29,17 @@ from engine import train_one_epoch, evaluate
 from utils import NativeScalerWithGradNormCount as NativeScaler
 import sparse_core
 from sparse_core import Masking, CosineDecay
-from FLOPs_counter import count_model_param_flops
+from FLOPs_counter import count_model_param_flops,print_model_param_nums
 import utils
+import timm
+import torch
+from thop_modified.profile import profile
+
+
 import models.convnext
 import models.convnext_dual_Rep_Pytorch
-
+import models.convnext_dual_Rep
+import models.convnext_isotropic
 
 def kernel_type(strings):
     strings = strings.replace("(", "").replace(")", "")
@@ -304,6 +310,7 @@ def main(args):
         LoRA=args.LoRA
         )
 
+    print(model)
     if args.finetune:
         if args.finetune.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(
@@ -414,7 +421,17 @@ def main(args):
         mask = Masking(optimizer, train_loader=data_loader_train, prune_mode=args.prune, prune_rate_decay=decay, growth_mode=args.growth, redistribution_mode=args.redistribution, args=args)
         mask.add_module(model)
 
+    x = torch.randn(1, 3, 224, 224)
+    x.to(device)
+    model.to(device)
+    flops, params = profile(model, inputs=(x,), verbose=False)
+
+    print('flops = %.4fM' % (flops / 1e6))
+    print("param size = %.4fMB" % (params / 1e6))
+
+
     count_model_param_flops(model=model, input_res=224)
+    print_model_param_nums(model=model)
 
     # max_accuracy = 0.0
     # if args.model_ema and args.model_ema_eval:

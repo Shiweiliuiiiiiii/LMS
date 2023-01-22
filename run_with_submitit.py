@@ -14,24 +14,26 @@ from pathlib import Path
 import main as classification
 import submitit
 
+
 def parse_args():
     classification_parser = classification.get_args_parser()
     parser = argparse.ArgumentParser("Submitit for ConvNeXt", parents=[classification_parser])
-    parser.add_argument("--ngpus", default=8, type=int, help="Number of gpus to request on each node")
+    parser.add_argument("--ngpus", default=4, type=int, help="Number of gpus to request on each node")
     parser.add_argument("--nodes", default=2, type=int, help="Number of nodes to request")
     parser.add_argument("--timeout", default=72, type=int, help="Duration of the job, in hours")
     parser.add_argument("--job_name", default="convnext", type=str, help="Job name")
     parser.add_argument("--job_dir", default="", type=str, help="Job directory; leave empty for default")
-    parser.add_argument("--partition", default="learnlab", type=str, help="Partition where to submit")
-    parser.add_argument("--use_volta32", action='store_true', default=True, help="Big models? Use this")
+    parser.add_argument("--partition", default="gpu", type=str, help="Partition where to submit")
+    parser.add_argument("--use_volta32", action='store_true', default=False, help="Big models? Use this")
     parser.add_argument('--comment', default="", type=str,
                         help='Comment to pass to scheduler, e.g. priority message')
     return parser.parse_args()
 
+
 def get_shared_folder() -> Path:
     user = os.getenv("USER")
-    if Path("/checkpoint/").is_dir():
-        p = Path(f"/checkpoint/{user}/convnext")
+    if Path("/projects/0/prjste21060/projects/").is_dir():
+        p = Path(f"/projects/0/prjste21060/projects/SLaK/checkpoint")
         p.mkdir(exist_ok=True)
         return p
     raise RuntimeError("No shared folder available")
@@ -43,6 +45,7 @@ def get_init_file():
     if init_file.exists():
         os.remove(str(init_file))
     return init_file
+
 
 class Trainer(object):
     def __init__(self, args):
@@ -78,7 +81,7 @@ class Trainer(object):
 
 def main():
     args = parse_args()
-    
+
     if args.job_dir == "":
         args.job_dir = get_shared_folder() / "%j"
 
@@ -96,10 +99,9 @@ def main():
         kwargs['slurm_comment'] = args.comment
 
     executor.update_parameters(
-        mem_gb=40 * num_gpus_per_node,
         gpus_per_node=num_gpus_per_node,
         tasks_per_node=num_gpus_per_node,  # one task per GPU
-        cpus_per_task=10,
+        cpus_per_task=18,
         nodes=nodes,
         timeout_min=timeout_min,  # max is 60 * 72
         # Below are cluster dependent parameters
@@ -115,8 +117,11 @@ def main():
 
     trainer = Trainer(args)
     job = executor.submit(trainer)
-
+    job.result()
+    full_stderr = job.stderr()
+    print(full_stderr)
     print("Submitted job_id:", job.job_id)
+
 
 if __name__ == "__main__":
     main()

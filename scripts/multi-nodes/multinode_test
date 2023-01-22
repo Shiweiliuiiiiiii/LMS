@@ -1,25 +1,15 @@
 #!/bin/bash
-#SBATCH --nodes=2
-#SBATCH --ntasks-per-node=4
-#SBATCH --gpus-per-node=4
-#SBATCH --cpus-per-task=18
-#SBATCH --partition=gpu
-#SBATCH --time=00:10:00
-#SBATCH -o multinode_test.out
+
 
 source /home/sliu/miniconda3/etc/profile.d/conda.sh
-source activate LoRA
+source activate slak
 
-#module purge
-#module load 2021
-#module load CUDA/11.3.1
-#module load PyTorch/1.10.0-foss-2021a-CUDA-11.3.1
 
-python run_with_submitit.py --nodes 2 --ngpus 4 \
---model convnext_base_Rep --drop_path 0.5 \
---batch_size 128 --lr 4e-3 --update_freq 4 \
---model_ema true --model_ema_eval true \
+python run_with_submitit.py --nodes 2 --ngpus 4 --model convnext_small_Rep --drop_path 0.4 --timeout 1 \
+--batch_size 64 --lr 4e-3 --update_freq 8 --model_ema true --model_ema_eval true \
 --data_path /projects/2/managed_datasets/imagenet/ --num_workers 72 --kernel-size 51 49 47 13 3 \
---output_dir Results/$model/51494713/multinode/Rep/120epochs/
+--job_dir /projects/0/prjste21060/projects/SLaK/checkpoint/small/milti_node
+
+
 
 source deactivate

@@ -8,10 +8,9 @@ export LARGE_KERNEL_CONV_IMPL='/datadrive_c/JJteam/cutlass/examples/19_large_dep
 
 model=convnext_tiny_Rep
 python -m torch.distributed.launch --nproc_per_node=4 main.py  \
---sparse --width-factor 1.5 -u 20000 --init-density 0.5 --method DST --sparse-init ERK_plus \
+--sparse --width-factor 1.5 -u 25000 --init-density 0.5 --method DST --sparse-init ERK_plus \
 --LoRA True --epochs 300 --model $model --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
 --model_ema_eval true --data_path $IMAGENET_PATH --num_workers 72 --kernel-size 51 49 47 13 5 \
---output_dir /Results/$model/51494713/W_S_ana/w1.7_s0.3_ERKP_20000/300epochs/
-
+--output_dir /Results/$model/51494713/W_S_ana/w1.7_s0.3_ERKP_25000/300epochs/
 
 source deactivate

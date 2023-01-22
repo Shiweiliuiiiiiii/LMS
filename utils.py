@@ -458,7 +458,7 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, mo
         }
 
         if model_ema is not None:
-            to_save['model_ema'] = get_state_dict(model_ema)
+            to_save['model_ema'] = get_state_dict(model_ema.ema)
 
         save_on_master(to_save, checkpoint_path)
     
@@ -489,6 +489,15 @@ def auto_load_model(args, model, model_without_ddp, optimizer, loss_scaler, mode
                 args.resume, map_location='cpu', check_hash=True)
         else:
             checkpoint = torch.load(args.resume, map_location='cpu')
+
+        # for name1, name2 in zip(checkpoint['model'], model_without_ddp.state_dict()):
+        #     # ema model may have been wrapped by DataParallel, and need module prefix
+        #     if name1 != name2:
+        #         checkpoint['model'][name2] = model_without_ddp.state_dict()[name2]
+        #         name_to_delte.append(name1)
+        # for name in name_to_delte:
+        #     checkpoint.pop(name)
+
         model_without_ddp.load_state_dict(checkpoint['model'])
         print("Resume checkpoint %s" % args.resume)
         if 'optimizer' in checkpoint and 'epoch' in checkpoint:

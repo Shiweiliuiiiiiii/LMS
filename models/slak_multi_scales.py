@@ -39,7 +39,7 @@ class Multi_scale_Conv(nn.Module):
         self.conv2_2 = nn.Conv2d(in_channels, out_channels, (21, 1), padding=(10, 0), groups=in_channels)
         self.bn2 = nn.BatchNorm2d(out_channels)
 
-        self.bn3 = nn.BatchNorm2d(out_channels)
+        # self.bn3 = nn.BatchNorm2d(out_channels)
 
     def forward(self, inputs):
 
@@ -55,10 +55,10 @@ class Multi_scale_Conv(nn.Module):
         path2 = self.conv2_2(path2)
         path2 = self.bn2(path2)
 
-        path3 = self.bn3(inputs)
+        # path3 = self.bn3(inputs)
 
-        out = path0 + path1 + path2 + path3
-        # out = attn_0 + attn_1 + attn_2
+        # out = path0 + path1 + path2 + path3
+        out = path0 + path1 + path2
 
         return out
 

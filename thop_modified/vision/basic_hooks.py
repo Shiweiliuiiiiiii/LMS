@@ -132,7 +132,7 @@ def count_upsample(m, x, y):
 
 # nn.Linear
 def count_linear(m, x, y):
-    num_weight_params = (m.weight.data != 0).float().sum() / (m.numel())
+    num_weight_params = (m.weight.data != 0).float().sum() / (m.weight.numel())
     # per output element
     total_mul = m.in_features
     # total_add = m.in_features - 1

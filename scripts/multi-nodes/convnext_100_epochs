@@ -1,31 +1,180 @@
 #!/bin/bash
-#SBATCH --job-name=slak_3x3
+#SBATCH --job-name=Throughput_rep
 #SBATCH -p gpu
 #SBATCH -N 1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4
 #SBATCH --gpus-per-node=4
 #SBATCH --gpus=4
-#SBATCH -t 2-23:59:59
+#SBATCH -t 0-0:59:59
 #SBATCH --exclusive
-#SBATCH --cpus-per-task=72
-#SBATCH -o slak_3x3.out
+#SBATCH --cpus-per-task=18
+#SBATCH -o Throughput_384_base.out
 
 source /home/sliu/miniconda3/etc/profile.d/conda.sh
-source activate LoRA
-
-#module purge
-#module load 2021
-#module load CUDA/11.3.1
-#module load PyTorch/1.10.0-foss-2021a-CUDA-11.3.1
+source activate slak
 
 
-model=convnext_tiny_Rep
-python -m torch.distributed.launch --nproc_per_node=1 main.py  \
---width-factor 1.0 -u 2000 --init-density 0.6 --method DST --sparse-init snip  --prune-rate 0.5 \
---kernel-size 3 3 3 3 100 \
---epochs 120 --model convnext_tiny_Rep --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
---model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 72  \
---output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/convnext_tiny_Rep/3333/120epochs/
+
+#python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+#--kernel-size 7 7 7 7 100 --bn False --LoRA False \
+#--epochs 100 --model convnext_tiny_Rep --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+#--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+#--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+#
+#python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+#--kernel-size 7 7 7 7 100 --bn False --LoRA False \
+#--epochs 100 --model convnext_small_Rep --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+#--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+#--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+#
+#python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+#--kernel-size 7 7 7 7 100 --bn False --LoRA False \
+#--epochs 100 --model convnext_base_Rep --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+#--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+#--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+#
+python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+--kernel-size 7 7 7 7 100 --bn False --LoRA False --input_size 384 \
+--epochs 100 --model convnext_base_Rep --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+
+#
+#python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+#--kernel-size 7 7 7 7 100 --bn False --LoRA False \
+#--epochs 100 --model convnext_tiny_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+#--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+#--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+#
+#python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+#--kernel-size 7 7 7 7 100 --bn False --LoRA False \
+#--epochs 100 --model convnext_small_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+#--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+#--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+#
+#python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+#--kernel-size 7 7 7 7 100 --bn False --LoRA False \
+#--epochs 100 --model convnext_base_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+#--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+#--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+python -m torch.distributed.launch --nproc_per_node=8 main.py  \
+--kernel-size 7 7 7 7 100 --bn False --LoRA False --input_size 224  \
+--epochs 100 --model SLAK_Attention_tiny --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 4 --model_ema true \
+--model_ema_eval true --data_path /ssd1/xinyu/datasets/imagenet_object_localization_challenge/ILSVRC/Data/CLS-LOC/ --num_workers 18  \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+
+
+python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput  --input_size 224  \
+--width-factor 1.0 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+--kernel-size 31 29 27 13 100 --bn False --LoRA False \
+--epochs 100 --model convnext_tiny_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+
+python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput  --input_size 224  \
+--width-factor 1.0 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+--kernel-size 51 49 47 13 100 --bn False --LoRA False \
+--epochs 100 --model convnext_tiny_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+
+python -m torch.distributed.launch --nproc_per_node=1 main.py   --input_size 224  \
+--width-factor 1.0 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+--kernel-size 61 59 57 13 100 --bn False --LoRA False \
+--epochs 100 --model convnext_tiny_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+
+
+python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput  --input_size 224  \
+--width-factor 1.0 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+--kernel-size 31 29 27 13 100 --bn False --LoRA False \
+--epochs 100 --model convnext_tiny_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+
+python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput  --input_size 224  \
+--width-factor 1.0 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+--kernel-size 51 49 47 13 100 --bn False --LoRA False \
+--epochs 100 --model convnext_tiny_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+
+python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput  --input_size 224  \
+--width-factor 1.0 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+--kernel-size 61 59 57 13 100 --bn False --LoRA False \
+--epochs 100 --model convnext_tiny_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+#convnext_tiny_Rep_py
+#python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+#--sparse --width-factor 1.3 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+#--kernel-size 51 49 47 13 5 --bn True --LoRA True \
+#--epochs 100 --model convnext_tiny_Rep --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+#--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+#--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+#
+#
+#python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+#--sparse --width-factor 1.3 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+#--kernel-size 51 49 47 13 5 --bn True --LoRA True \
+#--epochs 100 --model convnext_small_Rep --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+#--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+#--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+#
+#python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+#--sparse --width-factor 1.3 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+#--kernel-size 51 49 47 13 5 --bn True --LoRA True \
+#--epochs 100 --model convnext_base_Rep --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+#--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+#--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput  --input_size 384  \
+--sparse --width-factor 1.3 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+--kernel-size 51 49 47 13 5 --bn True --LoRA True \
+--epochs 100 --model convnext_base_Rep --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+
+#python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+#--sparse --width-factor 1.3 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+#--kernel-size 51 49 47 13 5 --bn True --LoRA True \
+#--epochs 100 --model convnext_tiny_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+#--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+#--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+#
+#
+#python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+#--sparse --width-factor 1.3 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+#--kernel-size 51 49 47 13 5 --bn True --LoRA True \
+#--epochs 100 --model convnext_small_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+#--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+#--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+
+#python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput \
+#--sparse --width-factor 1.3 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+#--kernel-size 51 49 47 13 5 --bn True --LoRA True \
+#--epochs 100 --model convnext_base_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+#--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+#--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
+
+python -m torch.distributed.launch --nproc_per_node=1 main.py --throughput --input_size 384 \
+--sparse --width-factor 1.3 -u 4000 --init-density 0.6 --method DST --sparse-init snip --growth random  --prune-rate 0.3 \
+--kernel-size 51 49 47 13 5 --bn True --LoRA True \
+--epochs 100 --model convnext_base_Rep_py --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
+--model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 18  \
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/
 
 
 source deactivate

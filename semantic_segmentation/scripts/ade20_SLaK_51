@@ -1,14 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=ADE20_decomp_51
+#SBATCH --job-name=ADE20_SLaK_51
 #SBATCH -p gpu
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=4
 #SBATCH --gpus=4
-#SBATCH -t 4-23:59:59
+#SBATCH -t 4-00:59:59
 #SBATCH --exclusive
 #SBATCH --cpus-per-task=72
-#SBATCH -o ADE20_decomp_51.out
+#SBATCH -o ADE20_SLaK_51_new.out
 
 source /home/sliu/miniconda3/etc/profile.d/conda.sh
 source activate LoRA
@@ -21,7 +21,7 @@ export LARGE_KERNEL_CONV_IMPL='/home/sliu/Projects/cutlass/examples/19_large_dep
 
 bash tools/dist_train.sh  \
  /home/sliu/Projects/unilm/beit/semantic_segmentation/configs/convnext/upernet_convnext_tiny_512_80k_ade20k_ss_decomp_51.py 4  \
-  --work-dir Results/ADE20_decomp_51/ --seed 0 --deterministic    \
-   --options model.pretrained=/home/sliu/Projects/LoRA_LK/Results/Kernel_size/51494713/5/LoRA_120_fix_EMA/120epochs/checkpoint-best.pth
+  --work-dir Results/ADE20_SLaK_51/ --seed 0 --deterministic    \
+   --options model.pretrained=/home/sliu/Projects/LoRA_LK/Results/convnext_tiny_Rep/51494713/LoRA_ERK_s1.5/120epochs/checkpoint-best.pth
 
 source deactivate

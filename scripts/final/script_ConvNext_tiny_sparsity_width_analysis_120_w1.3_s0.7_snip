@@ -1,14 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=Convnext_sparsity_w1.3_s0.6_120_snip
+#SBATCH --job-name=Convnext_sparsity_w1.3_s0.7_120_snip
 #SBATCH -p gpu
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=4
 #SBATCH --gpus=4
-#SBATCH -t 4-23:59:59
+#SBATCH -t 2-12:59:59
 #SBATCH --exclusive
 #SBATCH --cpus-per-task=72
-#SBATCH -o Convnext_sparsity_w1.3_s0.6_120_snip.out
+#SBATCH -o Convnext_sparsity_w1.3_s0.7_120_snip.out
 
 source /home/luyin/miniconda3/etc/profile.d/conda.sh
 source activate LoRA
@@ -19,11 +19,11 @@ source activate LoRA
 #module load PyTorch/1.10.0-foss-2021a-CUDA-11.3.1
 
 model=convnext_tiny_Rep
-python -m torch.distributed.launch --nproc_per_node=4 main.py  \
+python -m torch.distributed.launch --nproc_per_node=1 main.py  \
 --sparse --endepoch 60 --width-factor 1.3 -u 4000 --init-density 0.6 --method DST --sparse-init snip \
 --LoRA True --epochs 120 --model convnext_tiny_Rep --drop_path 0.1 --batch_size 128 --lr 4e-3 --update_freq 8 --model_ema true \
 --model_ema_eval true --data_path /projects/2/managed_datasets/imagenet/ --num_workers 72 --kernel-size 51 49 47 13 3 \
---output_dir Results/$model/51494713/W_S_ana/w1.3_s0.6_ERK/300epochs/
+--output_dir Results/$model/51494713/W_S_ana/w1.3_s0.7_ERK/120epochs/
 
 
 source deactivate
