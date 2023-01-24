@@ -1,23 +1,23 @@
 #!/bin/bash
-#SBATCH --job-name=RN50_120epochs
+#SBATCH --job-name=RN50_300epochs
 #SBATCH -p gpu
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=4
 #SBATCH --gpus-per-node=4
 #SBATCH --gpus=4
-#SBATCH -t 2-00:59:59
+#SBATCH -t 3-00:59:59
 #SBATCH --exclusive
 #SBATCH --cpus-per-task=18
-#SBATCH -o RN50_120epochs.out
+#SBATCH -o RN50_300epochs.out
 
 source /home/sliu/miniconda3/etc/profile.d/conda.sh
 source activate slak
 
 
-python -m torch.distributed.launch --nproc_per_node=4 main_rn50.py  --input_size 224  --epochs 120 \
+python -m torch.distributed.launch --nproc_per_node=4 main_rn50.py  --input_size 224  --epochs 300 \
 --model resnet50 --drop_path 0.1 --batch_size 256 --lr 4e-3 --update_freq 4 --model_ema False \
 --model_ema_eval False --data_path /projects/2/managed_datasets/imagenet/  --num_workers 18  \
---output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/RN50_120epochs/
+--output_dir /projects/0/prjste21060/projects/LoRA_LK/transfer/RN50_300epochs/
 
 
 source deactivate
