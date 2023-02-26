@@ -421,7 +421,7 @@ def main(args):
         mask = Masking(optimizer, train_loader=data_loader_train, prune_mode=args.prune, prune_rate_decay=decay, growth_mode=args.growth, redistribution_mode=args.redistribution, args=args)
         mask.add_module(model)
 
-    x = torch.randn(1, 3, 224, 224)
+    x = torch.randn(1, 3, 384, 384)
     x.to(device)
     model.to(device)
     flops, params = profile(model, inputs=(x,), verbose=False)
